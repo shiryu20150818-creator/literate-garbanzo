@@ -748,6 +748,9 @@ local function PhysicsStep(car, dt, inp)
 	-- ハンドル入力 (左が正)
 	local target = 0
 	if inp.left and not inp.right then target = 1 elseif inp.right and not inp.left then target = -1 end
+	if type(inp.analog) == "number" and math.abs(inp.analog) > 0.05 then
+		target = math.clamp(inp.analog, -1, 1)
+	end
 	local rate = (target == 0) and 6 or 4
 	st.steerIn += math.clamp(target - st.steerIn, -rate * dt, rate * dt)
 
@@ -1276,6 +1279,11 @@ if not parented or not gui.Parent then
 	gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 end
 
+local OBS_BG = Color3.fromRGB(8, 8, 12)
+local OBS_BTN = Color3.fromRGB(20, 18, 28)
+local OBS_STROKE = Color3.fromRGB(88, 78, 124)
+local OBS_TEXT = Color3.fromRGB(205, 198, 225)
+
 local function Round(obj, r)
 	local c = Instance.new("UICorner")
 	c.CornerRadius = UDim.new(0, r)
@@ -1295,46 +1303,46 @@ local function MakeButton(parent, text, size, pos, anchor, bg, textSize)
 	b.Position = pos
 	b.AnchorPoint = anchor or Vector2.new(0, 0)
 	b.BackgroundColor3 = bg
-	b.BackgroundTransparency = 0.15
+	b.BackgroundTransparency = 0.1
 	b.Text = text
-	b.TextColor3 = WHITE
+	b.TextColor3 = OBS_TEXT
 	b.Font = Enum.Font.SourceSansBold
 	b.TextSize = textSize or 24
 	b.AutoButtonColor = true
 	b.Parent = parent
 	Round(b, 12)
-	Stroke(b, CYAN, 1.5)
+	Stroke(b, OBS_STROKE, 1)
 	return b
 end
 
 -- メインパネル
 local main = Instance.new("Frame")
 main.Name = "Main"
-main.Size = UDim2.fromOffset(230, 196)
-main.Position = UDim2.new(0, 20, 0.2, 0)
-main.BackgroundColor3 = Color3.fromRGB(10, 14, 22)
+main.Size = UDim2.fromOffset(150, 126)
+main.Position = UDim2.new(0, 8, 0.15, 0)
+main.BackgroundColor3 = OBS_BG
 main.BorderSizePixel = 0
 main.Parent = gui
 Round(main, 10)
-Stroke(main, CYAN, 2)
+Stroke(main, OBS_STROKE, 1.5)
 
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -44, 0, 36)
-title.Position = UDim2.fromOffset(10, 0)
+title.Size = UDim2.new(1, -34, 0, 26)
+title.Position = UDim2.fromOffset(8, 0)
 title.BackgroundTransparency = 1
-title.Text = "GT-R ドリフトカー"
-title.TextColor3 = CYAN
+title.Text = "GT-R"
+title.TextColor3 = OBS_TEXT
 title.Font = Enum.Font.SourceSansBold
-title.TextSize = 22
+title.TextSize = 16
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Active = true
 title.Parent = main
 
-local closeBtn = MakeButton(main, "×", UDim2.fromOffset(32, 32), UDim2.new(1, -38, 0, 3), Vector2.new(0, 0), Color3.fromRGB(30, 40, 55), 24)
+local closeBtn = MakeButton(main, "×", UDim2.fromOffset(22, 22), UDim2.new(1, -26, 0, 2), Vector2.new(0, 0), OBS_BTN, 16)
 
-SpawnBtn = MakeButton(main, "召喚", UDim2.new(1, -20, 0, 44), UDim2.fromOffset(10, 42), Vector2.new(0, 0), Color3.fromRGB(20, 80, 100), 26)
-EnterBtn = MakeButton(main, "乗る", UDim2.new(1, -20, 0, 44), UDim2.fromOffset(10, 92), Vector2.new(0, 0), Color3.fromRGB(20, 80, 100), 26)
-local camBtn = MakeButton(main, "視点 切替 (外/車内)", UDim2.new(1, -20, 0, 44), UDim2.fromOffset(10, 142), Vector2.new(0, 0), Color3.fromRGB(30, 50, 70), 22)
+SpawnBtn = MakeButton(main, "召喚", UDim2.new(1, -12, 0, 28), UDim2.fromOffset(6, 30), Vector2.new(0, 0), OBS_BTN, 16)
+EnterBtn = MakeButton(main, "乗る", UDim2.new(1, -12, 0, 28), UDim2.fromOffset(6, 62), Vector2.new(0, 0), OBS_BTN, 16)
+local camBtn = MakeButton(main, "視点", UDim2.new(1, -12, 0, 28), UDim2.fromOffset(6, 94), Vector2.new(0, 0), OBS_BTN, 16)
 
 -- 運転パッド
 DrivePad = Instance.new("Frame")
@@ -1362,18 +1370,72 @@ local function Hold(btn, key)
 	end)
 end
 
-local bLeft = MakeButton(DrivePad, "◀", UDim2.fromOffset(84, 84), UDim2.new(0, 20, 1, -20), Vector2.new(0, 1), Color3.fromRGB(25, 45, 70), 36)
-local bRight = MakeButton(DrivePad, "▶", UDim2.fromOffset(84, 84), UDim2.new(0, 114, 1, -20), Vector2.new(0, 1), Color3.fromRGB(25, 45, 70), 36)
-local bGas = MakeButton(DrivePad, "▲", UDim2.fromOffset(96, 96), UDim2.new(1, -20, 1, -20), Vector2.new(1, 1), Color3.fromRGB(20, 100, 60), 40)
-local bBrake = MakeButton(DrivePad, "▼", UDim2.fromOffset(84, 84), UDim2.new(1, -126, 1, -20), Vector2.new(1, 1), Color3.fromRGB(110, 30, 30), 36)
-local bDrift = MakeButton(DrivePad, "DRIFT", UDim2.fromOffset(96, 70), UDim2.new(1, -20, 1, -126), Vector2.new(1, 1), Color3.fromRGB(150, 80, 10), 24)
-local bExit = MakeButton(DrivePad, "降りる", UDim2.fromOffset(90, 46), UDim2.new(1, -20, 0, 20), Vector2.new(1, 0), Color3.fromRGB(30, 40, 55), 22)
+local bLeft = MakeButton(DrivePad, "◀", UDim2.fromOffset(58, 58), UDim2.new(0, 12, 1, -12), Vector2.new(0, 1), OBS_BTN, 24)
+local bRight = MakeButton(DrivePad, "▶", UDim2.fromOffset(58, 58), UDim2.new(0, 76, 1, -12), Vector2.new(0, 1), OBS_BTN, 24)
+local bGas = MakeButton(DrivePad, "▲", UDim2.fromOffset(66, 66), UDim2.new(1, -12, 1, -12), Vector2.new(1, 1), OBS_BTN, 28)
+local bBrake = MakeButton(DrivePad, "▼", UDim2.fromOffset(58, 58), UDim2.new(1, -86, 1, -12), Vector2.new(1, 1), OBS_BTN, 24)
+local bDrift = MakeButton(DrivePad, "DRIFT", UDim2.fromOffset(66, 40), UDim2.new(1, -12, 1, -84), Vector2.new(1, 1), OBS_BTN, 15)
+local bExit = MakeButton(DrivePad, "降りる", UDim2.fromOffset(62, 30), UDim2.new(1, -12, 0, 10), Vector2.new(1, 0), OBS_BTN, 14)
 
 Hold(bLeft, "left")
 Hold(bRight, "right")
 Hold(bGas, "gas")
 Hold(bBrake, "brake")
 Hold(bDrift, "drift")
+
+-- ステアリングスライダー (指を左右にスライドして細かく操舵)
+local sliderBack = Instance.new("Frame")
+sliderBack.Size = UDim2.fromOffset(134, 40)
+sliderBack.Position = UDim2.new(0, 12, 1, -76)
+sliderBack.AnchorPoint = Vector2.new(0, 1)
+sliderBack.BackgroundColor3 = OBS_BG
+sliderBack.BackgroundTransparency = 0.25
+sliderBack.Active = true
+sliderBack.Parent = DrivePad
+Round(sliderBack, 20)
+Stroke(sliderBack, OBS_STROKE, 1)
+
+local sliderKnob = Instance.new("Frame")
+sliderKnob.Size = UDim2.fromOffset(32, 32)
+sliderKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+sliderKnob.Position = UDim2.fromScale(0.5, 0.5)
+sliderKnob.BackgroundColor3 = OBS_STROKE
+sliderKnob.BackgroundTransparency = 0.1
+sliderKnob.Parent = sliderBack
+Round(sliderKnob, 16)
+
+local function SliderSet(x)
+	local rel = math.clamp((x - sliderBack.AbsolutePosition.X) / sliderBack.AbsoluteSize.X, 0, 1)
+	sliderKnob.Position = UDim2.fromScale(math.clamp(rel, 0.12, 0.88), 0.5)
+	Inp.analog = -(rel - 0.5) * 2 -- 左へスライド = 左に曲がる
+end
+
+local function SliderReset()
+	sliderKnob.Position = UDim2.fromScale(0.5, 0.5)
+	Inp.analog = 0
+end
+
+local sliding = false
+local slideInput = nil
+sliderBack.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch then
+		sliding = true
+		slideInput = input
+		SliderSet(input.Position.X)
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				sliding = false
+				slideInput = nil
+				SliderReset()
+			end
+		end)
+	end
+end)
+table.insert(Conns, UserInputService.InputChanged:Connect(function(input)
+	if sliding and input == slideInput then
+		SliderSet(input.Position.X)
+	end
+end))
 
 -- ドラッグ移動 (タッチ)
 local dragging = false
