@@ -775,7 +775,7 @@ local function Teardown()
 	God = false
 	Busy = false
 	Ctx = nil
-	if FireBtn then FireBtn.Visible = false end
+	pcall(function() FireBtn.Visible = false end)
 	for _, s in ipairs(Swords) do
 		pcall(function() s.model:Destroy() end)
 	end
@@ -822,6 +822,14 @@ local function RunBody()
 	}
 	local T, Spin = 0, 0
 	local circleOn, chainsOn = true, false
+
+	local function Try(label, fn)
+		local ok, err = pcall(fn)
+		if not ok then
+			Notify("エラー: " .. label, tostring(err), 8)
+		end
+		return ok
+	end
 
 	local Folder = Instance.new("Folder")
 	Folder.Name = "SwordGodFx"
@@ -1421,195 +1429,238 @@ local function RunBody()
 	------------------------------------------------------------
 	-- 6) 雷 → 黄金の盾
 	------------------------------------------------------------
-	if Alive then
-		Notify("雷", "雷が落ちる…！", 3)
-		task.wait(0.3)
-		task.spawn(Strike, hrp.Position + Vector3.new(0, 1, 0), function()
-			RaiseShield()
-			task.delay(0.05, DomeArcs)
-		end)
-		task.wait(0.8)
-		Notify("黄金の盾", "黄金の盾が守ってくれた！", 3)
-		task.wait(1.4)
-	end
+	local sword1 = nil
+	local groundPt = nil
+
+	Try("ステージ6 雷 → 黄金の盾", function()
+		if Alive then
+			Notify("雷", "雷が落ちる…！", 3)
+			task.wait(0.3)
+			task.spawn(Strike, hrp.Position + Vector3.new(0, 1, 0), function()
+				RaiseShield()
+				task.delay(0.05, DomeArcs)
+			end)
+			task.wait(0.8)
+			Notify("黄金の盾", "黄金の盾が守ってくれた！", 3)
+			task.wait(1.4)
+		end
+	end)
 
 	------------------------------------------------------------
 	-- 7) 目の前に剣が刺さっている
 	------------------------------------------------------------
-	local sword1 = nil
-	local groundPt = nil
-	if Alive then
-		local fwd = baseCF.LookVector
-		local gp = Vector3.new(basePos.X, groundY, basePos.Z) + fwd * 5.5
-		local r2 = Workspace:Raycast(gp + Vector3.new(0, 10, 0), Vector3.new(0, -30, 0), params)
-		local gy = r2 and r2.Position.Y or groundY
-		groundPt = Vector3.new(gp.X, gy, gp.Z)
+	Try("ステージ7 目の前に剣が刺さっている", function()
+		if Alive then
+			local fwd = baseCF.LookVector
+			local gp = Vector3.new(basePos.X, groundY, basePos.Z) + fwd * 5.5
+			local r2 = Workspace:Raycast(gp + Vector3.new(0, 10, 0), Vector3.new(0, -30, 0), params)
+			local gy = r2 and r2.Position.Y or groundY
+			groundPt = Vector3.new(gp.X, gy, gp.Z)
 
-		sword1 = BuildSword(Folder)
-		sword1.slot = 1
-		sword1.state = "stuck"
-		sword1.dir = Vector3.new(0, -1, 0)
-		sword1.upHint = fwd
-		sword1.pos = groundPt + Vector3.new(0, 2.6, 0)
-		table.insert(Swords, sword1)
-		FadeSwordIn(sword1, 0.7)
+			sword1 = BuildSword(Folder)
+			sword1.slot = 1
+			sword1.state = "stuck"
+			sword1.dir = Vector3.new(0, -1, 0)
+			sword1.upHint = fwd
+			sword1.pos = groundPt + Vector3.new(0, 2.6, 0)
+			table.insert(Swords, sword1)
+			FadeSwordIn(sword1, 0.7)
 
-		Flash(groundPt, GOLD, 10)
-		local pillar = Instance.new("Part")
-		pillar.Shape = Enum.PartType.Cylinder
-		pillar.Material = Enum.Material.Neon
-		pillar.Color = Color3.fromRGB(255, 225, 140)
-		pillar.Anchored = true
-		pillar.CanCollide = false
-		pillar.CanQuery = false
-		pillar.CanTouch = false
-		pillar.CastShadow = false
-		pillar.Transparency = 0.3
-		pillar.Size = Vector3.new(60, 3, 3)
-		pillar.CFrame = CFrame.new(groundPt + Vector3.new(0, 30, 0)) * CFrame.Angles(0, 0, math.pi / 2)
-		pillar.Parent = Folder
-		TweenService:Create(pillar, TweenInfo.new(1.0), {Transparency = 1, Size = Vector3.new(60, 0.4, 0.4)}):Play()
-		Debris:AddItem(pillar, 1.1)
+			Flash(groundPt, GOLD, 10)
+			local pillar = Instance.new("Part")
+			pillar.Shape = Enum.PartType.Cylinder
+			pillar.Material = Enum.Material.Neon
+			pillar.Color = Color3.fromRGB(255, 225, 140)
+			pillar.Anchored = true
+			pillar.CanCollide = false
+			pillar.CanQuery = false
+			pillar.CanTouch = false
+			pillar.CastShadow = false
+			pillar.Transparency = 0.3
+			pillar.Size = Vector3.new(60, 3, 3)
+			pillar.CFrame = CFrame.new(groundPt + Vector3.new(0, 30, 0)) * CFrame.Angles(0, 0, math.pi / 2)
+			pillar.Parent = Folder
+			TweenService:Create(pillar, TweenInfo.new(1.0), {Transparency = 1, Size = Vector3.new(60, 0.4, 0.4)}):Play()
+			Debris:AddItem(pillar, 1.1)
 
-		Notify("剣", "目の前に黄金の剣が刺さっている…", 3)
-		task.wait(1.0)
-		FadeShield()
-		task.wait(0.8)
-	end
+			Notify("剣", "目の前に黄金の剣が刺さっている…", 3)
+			task.wait(1.0)
+			FadeShield()
+			task.wait(0.8)
+		end
+	end)
 
 	------------------------------------------------------------
 	-- 8) 起き上がる → 剣へ歩く
 	------------------------------------------------------------
-	if Alive then
-		Animate(1.8, function(a)
-			local e = Ease(a)
-			State.pitch = -math.pi / 2 * (1 - e)
-			State.height = proneOff * (1 - e)
-			State.shake = 0.05 * (1 - e)
-		end)
-		State.pitch = 0
-		State.height = 0
-		State.posing = false
-		RestoreMotors()
+	Try("ステージ8 起き上がる → 剣へ歩く", function()
+		if Alive then
+			Animate(1.8, function(a)
+				local e = Ease(a)
+				State.pitch = -math.pi / 2 * (1 - e)
+				State.height = proneOff * (1 - e)
+				State.shake = 0.05 * (1 - e)
+			end)
+			State.pitch = 0
+			State.height = 0
+			State.posing = false
+			RestoreMotors()
 
-		-- 実際に歩いて近づく (操作は一時的に無効)
-		local controls = GetControls()
-		if controls then pcall(function() controls:Disable() end) end
-		State.free = true
-		hum.PlatformStand = false
-		hrp.Anchored = false
-		pcall(function() hum:ChangeState(Enum.HumanoidStateType.GettingUp) end)
+			-- 実際に歩いて近づく (操作は一時的に無効)
+			local controls = GetControls()
+			if controls then pcall(function() controls:Disable() end) end
+			State.free = true
+			hum.PlatformStand = false
+			hrp.Anchored = false
+			pcall(function() hum:ChangeState(Enum.HumanoidStateType.GettingUp) end)
 
-		local fwd = baseCF.LookVector
-		local standPos = groundPt - fwd * 2.8
-		hum:MoveTo(standPos)
-		local t0 = os.clock()
-		while Alive do
-			local dflat = Vector3.new(hrp.Position.X - standPos.X, 0, hrp.Position.Z - standPos.Z).Magnitude
-			if dflat < 1.3 or os.clock() - t0 > 4.5 then break end
-			task.wait(0.05)
+			local fwd = baseCF.LookVector
+			local standPos = groundPt - fwd * 2.8
+			hum:MoveTo(standPos)
+			local t0 = os.clock()
+			while Alive do
+				local dflat = Vector3.new(hrp.Position.X - standPos.X, 0, hrp.Position.Z - standPos.Z).Magnitude
+				if dflat < 1.3 or os.clock() - t0 > 4.5 then break end
+				task.wait(0.05)
+			end
+			hum:Move(Vector3.zero)
+
+			-- 剣の方を向いて固定
+			local toS = Vector3.new(groundPt.X - hrp.Position.X, 0, groundPt.Z - hrp.Position.Z)
+			if toS.Magnitude > 0.1 then
+				yaw = math.atan2(-toS.Unit.X, -toS.Unit.Z)
+			end
+			basePos = hrp.Position
+			hrp.AssemblyLinearVelocity = Vector3.zero
+			hrp.Anchored = true
+			State.free = false
+			State.posing = true
+			State.pose = 0
+			State.height = 0
+			State.pitch = 0
+			hum.AutoRotate = false
 		end
-		hum:Move(Vector3.zero)
-
-		-- 剣の方を向いて固定
-		local toS = Vector3.new(groundPt.X - hrp.Position.X, 0, groundPt.Z - hrp.Position.Z)
-		if toS.Magnitude > 0.1 then
-			yaw = math.atan2(-toS.Unit.X, -toS.Unit.Z)
-		end
-		basePos = hrp.Position
-		hrp.AssemblyLinearVelocity = Vector3.zero
-		hrp.Anchored = true
-		State.free = false
-		State.posing = true
-		State.pose = 0
-		State.height = 0
-		State.pitch = 0
-		hum.AutoRotate = false
-	end
+	end)
 
 	------------------------------------------------------------
 	-- 9) 剣を抜く → 8本に増える
 	------------------------------------------------------------
-	if Alive and sword1 then
-		Notify("剣を抜く", "剣を引き抜く…", 3)
-		Animate(0.7, function(a)
-			State.grab = Ease(a)
-		end)
+	Try("ステージ9 剣を抜く → 8本に増える", function()
+		if Alive and sword1 then
+			Notify("剣を抜く", "剣を引き抜く…", 3)
+			Animate(0.7, function(a)
+				State.grab = Ease(a)
+			end)
 
-		local startPos = sword1.pos
-		local fwdH = Vector3.new(math.sin(-yaw) * -1, 0, 0)
-		fwdH = CFrame.Angles(0, yaw, 0).LookVector
-		-- 引き抜いて持ち上げる
-		Animate(1.2, function(a)
-			local e = Ease(a)
-			sword1.pos = startPos + Vector3.new(0, 5.4 * e, 0)
-			sword1.upHint = fwdH
-		end)
-		local liftPos = sword1.pos
-		Explode(Vector3.new(groundPt.X, groundPt.Y + 0.5, groundPt.Z), 0.5)
-		SpawnShards(groundPt + Vector3.new(0, 0.5, 0), 14, 22)
+			local startPos = sword1.pos
+			local fwdH = Vector3.new(math.sin(-yaw) * -1, 0, 0)
+			fwdH = CFrame.Angles(0, yaw, 0).LookVector
+			-- 引き抜いて持ち上げる
+			Animate(1.2, function(a)
+				local e = Ease(a)
+				sword1.pos = startPos + Vector3.new(0, 5.4 * e, 0)
+				sword1.upHint = fwdH
+			end)
+			local liftPos = sword1.pos
+			Explode(Vector3.new(groundPt.X, groundPt.Y + 0.5, groundPt.Z), 0.5)
+			SpawnShards(groundPt + Vector3.new(0, 0.5, 0), 14, 22)
 
-		-- 切っ先を前方へ向ける
-		Animate(0.9, function(a)
-			local e = Ease(a)
-			local phi = math.rad(-90 + 125 * e)
-			sword1.dir = (fwdH * math.cos(phi) + Vector3.new(0, math.sin(phi), 0)).Unit
-			sword1.pos = liftPos + Vector3.new(0, 1.2 * e, 0) + fwdH * (-1.0 * e)
-		end)
+			-- 切っ先を前方へ向ける
+			Animate(0.9, function(a)
+				local e = Ease(a)
+				local phi = math.rad(-90 + 125 * e)
+				sword1.dir = (fwdH * math.cos(phi) + Vector3.new(0, math.sin(phi), 0)).Unit
+				sword1.pos = liftPos + Vector3.new(0, 1.2 * e, 0) + fwdH * (-1.0 * e)
+			end)
 
-		-- 増殖
-		Notify("増殖", "剣が8本に増えた！", 3)
-		ScreenFlash(false)
-		Explode(sword1.pos, 0.9)
-		local origin = sword1.pos
-		sword1.state = "toSlot"
-		sword1.t = 0
-		sword1.dur = 1.1
-		sword1.start = origin
-		sword1.arc = 2
-		for i = 2, SWORD_COUNT do
-			local n = BuildSword(Folder)
-			n.slot = i
-			n.state = "toSlot"
-			n.t = 0
-			n.dur = 1.0 + rng:NextNumber(0, 0.3)
-			n.start = origin
-			n.pos = origin
-			n.dir = sword1.dir
-			n.arc = rng:NextNumber(1, 4)
-			n.upHint = fwdH
-			SetSwordShown(n, true)
-			table.insert(Swords, n)
+			-- 増殖
+			Notify("増殖", "剣が8本に増えた！", 3)
+			ScreenFlash(false)
+			Explode(sword1.pos, 0.9)
+			local origin = sword1.pos
+			sword1.state = "toSlot"
+			sword1.t = 0
+			sword1.dur = 1.1
+			sword1.start = origin
+			sword1.arc = 2
+			for i = 2, SWORD_COUNT do
+				local n = BuildSword(Folder)
+				n.slot = i
+				n.state = "toSlot"
+				n.t = 0
+				n.dur = 1.0 + rng:NextNumber(0, 0.3)
+				n.start = origin
+				n.pos = origin
+				n.dir = sword1.dir
+				n.arc = rng:NextNumber(1, 4)
+				n.upHint = fwdH
+				SetSwordShown(n, true)
+				table.insert(Swords, n)
+			end
+
+			Animate(0.5, function(a)
+				State.grab = 1 - Ease(a)
+			end)
+			task.wait(1.2)
 		end
-
-		Animate(0.5, function(a)
-			State.grab = 1 - Ease(a)
-		end)
-		task.wait(1.2)
-	end
+	end)
 
 	------------------------------------------------------------
 	-- 10) 剣の神: 操作を返す
 	------------------------------------------------------------
-	if Alive then
-		State.free = true
-		State.posing = false
-		RestoreMotors()
-		hum.AutoRotate = true
-		hum.PlatformStand = false
-		hrp.Anchored = false
+	Try("ステージ10 剣の神: 操作を返す", function()
+		if Alive then
+			State.free = true
+			State.posing = false
+			RestoreMotors()
+			hum.AutoRotate = true
+			hum.PlatformStand = false
+			hrp.Anchored = false
+			local controls = GetControls()
+			if controls then pcall(function() controls:Enable() end) end
+			circleOn = false
+			for _, cg in ipairs({outerCG, midCG, innerCG}) do
+				pcall(function()
+					TweenService:Create(cg, TweenInfo.new(1.5), {GroupTransparency = 1}):Play()
+				end)
+			end
+			State.glowTarget = 0
+
+			God = true
+			Alive = false
+			pcall(function() FireBtn.Visible = true end)
+			Notify("剣の神", "あなたは剣の神になった。「発射」で視点の中心へ放てる", 5)
+		end
+	end)
+
+	-- 途中で失敗しても必ず操作を返す
+	if Running and Ctx and not God then
+		pcall(function()
+			State.free = true
+			State.posing = false
+			RestoreMotors()
+			hum.AutoRotate = true
+			hum.PlatformStand = false
+			hrp.Anchored = false
+		end)
 		local controls = GetControls()
 		if controls then pcall(function() controls:Enable() end) end
-		circleOn = false
-		for _, cg in ipairs({outerCG, midCG, innerCG}) do
-			TweenService:Create(cg, TweenInfo.new(1.5), {GroupTransparency = 1}):Play()
-		end
-		State.glowTarget = 0
-
-		God = true
 		Alive = false
-		if FireBtn then FireBtn.Visible = true end
-		Notify("剣の神", "あなたは剣の神になった。「発射」で視点の中心へ放てる", 5)
+		if #Swords > 0 then
+			for i, sw in ipairs(Swords) do
+				if sw.state == "stuck" or sw.state == "hidden" then
+					sw.state = "toSlot"
+					sw.t = 0
+					sw.dur = 1.0
+					sw.start = sw.pos
+					sw.arc = 2
+					SetSwordShown(sw, true)
+				end
+			end
+			God = true
+			pcall(function() FireBtn.Visible = true end)
+			Notify("復帰", "途中でエラーが出たため、操作を返しました", 4)
+		end
 	end
 end
 
@@ -1627,10 +1678,12 @@ gui.ResetOnSpawn = false
 gui.DisplayOrder = 999
 
 local parented = pcall(function()
-	gui.Parent = game:GetService("CoreGui")
+	gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 end)
 if not parented or not gui.Parent then
-	gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+	pcall(function()
+		gui.Parent = game:GetService("CoreGui")
+	end)
 end
 
 local function Round(obj, r)
